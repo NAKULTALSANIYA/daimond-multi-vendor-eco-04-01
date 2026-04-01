@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Read(//e/NanoStack Projects/App/**)",
+      "Bash(flutter create:*)",
+      "Bash(mkdir -p \"E:\\\\NanoStack Projects\\\\App\\\\DiamondCityEcommerce\\\\assets\\\\images\")",
+      "Bash(cp \"E:\\\\NanoStack Projects\\\\App\\\\DiamondCityEcommerce_backend\\\\multi vendor eco\\\\src\\\\assets\\\\img\\\\diamond-smart-city-logo.jpeg\" \"E:\\\\NanoStack Projects\\\\App\\\\DiamondCityEcommerce\\\\assets\\\\images\\\\logo.jpeg\")",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(ipconfig)",
+      "Bash(findstr /i \"IPv4\")",
+      "Bash(netstat -ano)"
+    ],
+    "additionalDirectories": [
+      "E:\\NanoStack Projects\\App\\DiamondCityEcommerce\\lib\\core\\constants"
+    ]
+  }
+}
