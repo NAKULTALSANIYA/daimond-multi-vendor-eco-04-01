@@ -132,6 +132,10 @@
  *                 type: string
  *                 minLength: 2
  *                 maxLength: 180
+ *               slug:
+ *                 type: string
+ *                 description: Optional. If omitted, slug is auto-generated from product name.
+ *                 example: "gaming-laptop-pro-16"
  *               price:
  *                 type: number
  *                 minimum: 0

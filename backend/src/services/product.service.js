@@ -6,6 +6,30 @@ import { ApiError } from '../utils/ApiError.js';
 import { buildPagination, buildSearchRegex } from '../utils/query.js';
 
 export class ProductService {
+  normalizeSlug(value) {
+    if (!value) return '';
+    return String(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  }
+
+  async ensureUniqueSlug(baseSlug) {
+    if (!baseSlug) return '';
+
+    let candidate = baseSlug;
+    let attempt = 1;
+
+    while (await Product.exists({ slug: candidate })) {
+      candidate = `${baseSlug}-${attempt}`;
+      attempt += 1;
+    }
+
+    return candidate;
+  }
+
   async searchProducts(query) {
     const { page, limit, sort } = buildPagination(query);
     const filter = { isActive: true };
@@ -52,10 +76,16 @@ export class ProductService {
       throw new ApiError(403, 'Vendor not approved');
     }
 
+    const baseSlug = this.normalizeSlug(payload.slug || payload.name);
+    const slug = await this.ensureUniqueSlug(baseSlug);
+    if (!slug) {
+      throw new ApiError(400, 'slug is invalid or could not be generated');
+    }
+
     const category = await Category.findById(payload.category);
     if (!category) throw new ApiError(404, 'Category not found');
 
-    const product = await Product.create({ ...payload, vendor: vendorId });
+    const product = await Product.create({ ...payload, slug, vendor: vendorId });
     return product;
   }
 
