@@ -15,9 +15,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Respect X-Forwarded-* headers when running behind a reverse proxy/load balancer.
-app.set('trust proxy', 1);
-
 applySecurityMiddlewares(app);
 
 app.use(express.json({ limit: '2mb' }));
