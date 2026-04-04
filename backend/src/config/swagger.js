@@ -1,8 +1,13 @@
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { env } from './env.js';
 
-const options = {
-  definition: {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const definition = {
     openapi: '3.0.0',
     info: {
       title: 'Multi Vendor Ecommerce API',
@@ -16,16 +21,6 @@ const options = {
         name: 'MIT',
       },
     },
-    servers: [
-      {
-        url: 'http://localhost:5000/api/v1',
-        description: 'Local development server',
-      },
-      {
-        url: 'https://api.example.com/api/v1',
-        description: 'Production server',
-      },
-    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -168,25 +163,56 @@ const options = {
         description: 'Admin panel & controls',
       },
     ],
-  },
+};
+
+const options = {
+  definition,
   apis: [
-    './src/docs/schemas.docs.js',
-    './src/docs/auth.docs.js',
-    './src/docs/product.docs.js',
-    './src/docs/upload.docs.js',
-    './src/docs/vendor.docs.js',
-    './src/docs/user.docs.js',
-    './src/docs/cart.docs.js',
-    './src/docs/order.docs.js',
-    './src/docs/admin.docs.js',
+    path.join(__dirname, '../docs/**/*.docs.js'),
   ],
 };
 
-const swaggerSpec = swaggerJSDoc(options);
+const baseSwaggerSpec = swaggerJSDoc(options);
+
+const normalizeApiPrefix = (prefix) => {
+  if (!prefix) return '/api';
+  return prefix.startsWith('/') ? prefix : `/${prefix}`;
+};
+
+const getSpecForRequest = (req) => {
+  const apiPrefix = normalizeApiPrefix(env.apiPrefix);
+  const host = req.get('host') || `localhost:${env.port}`;
+  const protocol = req.protocol || 'http';
+  const runtimeServer = `${protocol}://${host}${apiPrefix}`;
+
+  return {
+    ...baseSwaggerSpec,
+    servers: [
+      {
+        url: runtimeServer,
+        description: 'Current environment server',
+      },
+    ],
+  };
+};
 
 export const setupSwagger = (app) => {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  const apiPrefix = normalizeApiPrefix(env.apiPrefix);
+  const docsPath = `${apiPrefix}/docs`;
+  const jsonPath = '/api-docs.json';
+  const prefixedJsonPath = `${docsPath}.json`;
+
+  app.get(jsonPath, (req, res) => {
+    res.json(getSpecForRequest(req));
+  });
+
+  app.get(prefixedJsonPath, (req, res) => {
+    res.json(getSpecForRequest(req));
+  });
+
+  const swaggerUiOptions = {
     swaggerOptions: {
+      url: jsonPath,
       persistAuthorization: true,
       displayOperationId: true,
       filter: true,
@@ -205,5 +231,19 @@ export const setupSwagger = (app) => {
         color: #4CAF50;
       }
     `,
-  }));
+  };
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, swaggerUiOptions));
+
+  app.use(
+    docsPath,
+    swaggerUi.serve,
+    swaggerUi.setup(null, {
+      ...swaggerUiOptions,
+      swaggerOptions: {
+        ...swaggerUiOptions.swaggerOptions,
+        url: prefixedJsonPath,
+      },
+    })
+  );
 };
