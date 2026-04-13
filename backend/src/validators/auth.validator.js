@@ -14,8 +14,12 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   body: z.object({
-    email: z.string().email(),
+    email: z.string().email().optional(),
+    phone: z.string().regex(/^[0-9]{10,15}$/).optional(),
     password: z.string().min(8).max(64),
+  }).refine((data) => Boolean(data.email || data.phone), {
+    message: 'Either email or phone is required',
+    path: ['email'],
   }),
   query: z.object({}).optional(),
   params: z.object({}).optional(),

@@ -72,7 +72,7 @@
  *
  * /auth/login:
  *   post:
- *     summary: Login user
+ *     summary: Login user with email or mobile number
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -81,17 +81,23 @@
  *           schema:
  *             type: object
  *             required:
- *               - email
  *               - password
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: "john@example.com"
+ *               phone:
+ *                 type: string
+ *                 pattern: "^[0-9]{10,15}$"
+ *                 example: "9876543210"
  *               password:
  *                 type: string
  *                 minLength: 8
  *                 example: "SecurePass123!"
+ *             oneOf:
+ *               - required: [email, password]
+ *               - required: [phone, password]
  *     responses:
  *       200:
  *         description: Login successful

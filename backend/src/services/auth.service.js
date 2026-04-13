@@ -57,7 +57,11 @@ export class AuthService {
   }
 
   async login(payload) {
-    const user = await User.findOne({ email: payload.email }).select('+password');
+    const lookup = payload.email
+      ? { email: payload.email }
+      : { phone: payload.phone };
+
+    const user = await User.findOne(lookup).select('+password');
     if (!user) throw new ApiError(401, 'Invalid credentials');
     if (user.isBlocked || user.isDeleted) throw new ApiError(403, 'Account is blocked');
 
