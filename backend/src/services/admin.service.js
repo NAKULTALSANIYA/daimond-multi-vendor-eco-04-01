@@ -1,4 +1,5 @@
 import { Category } from '../models/Category.js';
+import { PAYMENT_STATUS, ROLES } from '../constants/roles.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
@@ -8,23 +9,34 @@ import { buildPagination } from '../utils/query.js';
 
 export class AdminService {
   async platformOverview() {
-    const [users, vendors, products, orders, paidRevenue] = await Promise.all([
-      User.countDocuments({ role: 'USER', isDeleted: false }),
+    const [totalUsers, totalVendors, activeVendors, pendingVendors, totalProducts, totalOrders, paidRevenue] = await Promise.all([
+      User.countDocuments({ role: ROLES.USER, isDeleted: false }),
       Vendor.countDocuments({ isDeleted: false }),
+      Vendor.countDocuments({ approvalStatus: 'APPROVED', isDeleted: false }),
+      Vendor.countDocuments({ approvalStatus: 'PENDING', isDeleted: false }),
       Product.countDocuments({ isDeleted: false }),
       Order.countDocuments({ isDeleted: false }),
       Order.aggregate([
-        { $match: { paymentStatus: 'PAID' } },
+        { $match: { paymentStatus: PAYMENT_STATUS.PAID, isDeleted: false } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } },
       ]),
     ]);
 
+    const totalRevenue = paidRevenue[0]?.total || 0;
+
     return {
-      users,
-      vendors,
-      products,
-      orders,
-      totalRevenue: paidRevenue[0]?.total || 0,
+      totalUsers,
+      totalVendors,
+      totalProducts,
+      totalOrders,
+      activeVendors,
+      pendingVendors,
+      totalRevenue,
+      // Backward-compatible keys for existing clients.
+      users: totalUsers,
+      vendors: totalVendors,
+      products: totalProducts,
+      orders: totalOrders,
     };
   }
 
