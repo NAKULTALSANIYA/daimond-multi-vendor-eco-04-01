@@ -8,12 +8,18 @@ import { ApiError } from '../utils/ApiError.js';
 import { buildPagination } from '../utils/query.js';
 
 export class AdminService {
+  async getVendorUserIds() {
+    return User.distinct('_id', { role: ROLES.VENDOR, isDeleted: false });
+  }
+
   async platformOverview() {
+    const vendorUserIds = await this.getVendorUserIds();
+
     const [totalUsers, totalVendors, activeVendors, pendingVendors, totalProducts, totalOrders, paidRevenue] = await Promise.all([
-      User.countDocuments({ role: ROLES.USER, isDeleted: false }),
-      Vendor.countDocuments({ isDeleted: false }),
-      Vendor.countDocuments({ approvalStatus: 'APPROVED', isDeleted: false }),
-      Vendor.countDocuments({ approvalStatus: 'PENDING', isDeleted: false }),
+      User.countDocuments({ isDeleted: false }),
+      Vendor.countDocuments({ user: { $in: vendorUserIds }, isDeleted: false }),
+      Vendor.countDocuments({ user: { $in: vendorUserIds }, approvalStatus: 'APPROVED', isDeleted: false }),
+      Vendor.countDocuments({ user: { $in: vendorUserIds }, approvalStatus: 'PENDING', isDeleted: false }),
       Product.countDocuments({ isDeleted: false }),
       Order.countDocuments({ isDeleted: false }),
       Order.aggregate([
@@ -47,7 +53,11 @@ export class AdminService {
 
   async listVendors(query) {
     const { page, limit, sort } = buildPagination(query);
-    return Vendor.paginate({}, { page, limit, sort, populate: [{ path: 'user', select: 'name email role' }] });
+    const vendorUserIds = await this.getVendorUserIds();
+    return Vendor.paginate(
+      { user: { $in: vendorUserIds } },
+      { page, limit, sort, populate: [{ path: 'user', select: 'name email role' }] }
+    );
   }
 
   async listProducts(query) {
